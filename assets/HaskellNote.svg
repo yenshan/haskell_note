@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="80" y="92" width="864" height="864" rx="196" fill="#203b30" opacity=".12"/>
+  <rect x="80" y="80" width="864" height="864" rx="196" fill="#f6f7f0" stroke="#d5ddd3" stroke-width="2"/>
+  <rect x="90" y="90" width="844" height="844" rx="186" fill="none" stroke="#ffffff" stroke-opacity=".8" stroke-width="3"/>
+  <!-- Straight-cut lambda and three notebook rules share the same diagonal. -->
+  <path fill="#345c49" d="M280 280H388L650 744H538L466 616L390 744H264L410 516Z M478 440H744V488H505Z M541 552H744V600H568Z M604 664H744V712H631Z"/>
+</svg>

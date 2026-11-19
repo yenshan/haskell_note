@@ -6,6 +6,13 @@ const { Workspace } = require('./workspace.cjs');
 const { WorkspaceServices } = require('./workspace-services.cjs');
 const { restoreWindowState, trackWindowState } = require('./window-state.cjs');
 const root = path.resolve(__dirname, '..');
+app.setName('HaskellNote');
+// Keep existing workspaces, preferences and browser storage across the rename.
+if (app.isPackaged) {
+  const runtime = path.join(app.getPath('appData'), 'Kata');
+  fs.mkdirSync(runtime, { recursive:true });
+  app.setPath('userData', runtime); app.setPath('sessionData', runtime);
+}
 if (!app.isPackaged) {
   const runtime = process.env.KATA_RUNTIME || path.join(root, '.runtime'); fs.mkdirSync(runtime, { recursive:true });
   app.setPath('userData', runtime); app.setPath('sessionData', runtime);
@@ -88,7 +95,7 @@ app.whenReady().then(async () => {
     closeAllowed = false; rendererReady = false;
     const stateFile = path.join(app.getPath('userData'),'window-state.json');
     const state = restoreWindowState(stateFile,screen);
-    win = new BrowserWindow({ ...state.bounds, minWidth:state.minWidth, minHeight:state.minHeight, show:false, backgroundColor:'#ffffff', title:'Kata — Haskell workspace', titleBarStyle:'default', webPreferences:{ preload:path.join(__dirname,'preload.cjs'), contextIsolation:true, nodeIntegration:false, sandbox:true } });
+    win = new BrowserWindow({ ...state.bounds, minWidth:state.minWidth, minHeight:state.minHeight, show:false, backgroundColor:'#ffffff', title:'HaskellNote — Haskell workspace', titleBarStyle:'default', webPreferences:{ preload:path.join(__dirname,'preload.cjs'), contextIsolation:true, nodeIntegration:false, sandbox:true } });
     if (state.maximized) win.maximize();
     trackWindowState(win,stateFile,state);
     win.once('ready-to-show',() => win.show());
@@ -108,7 +115,7 @@ app.whenReady().then(async () => {
     });
   }
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    { label:'Kata', submenu:[{ role:'about' }, { type:'separator' }, { role:'hide' }, { role:'quit' }] },
+    { label:'HaskellNote', submenu:[{ role:'about' }, { type:'separator' }, { role:'hide' }, { role:'quit' }] },
     { label:'Edit', submenu:[{ role:'undo' }, { role:'redo' }, { type:'separator' }, { role:'cut' }, { role:'copy' }, { role:'paste' }, { role:'selectAll' }] },
     { label:'View', submenu:[{ role:'reload' }, { role:'toggleDevTools' }, { role:'resetZoom' }, { role:'zoomIn' }, { role:'zoomOut' }, { role:'togglefullscreen' }] }
   ]));

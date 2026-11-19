@@ -10,16 +10,16 @@ if (process.platform !== 'darwin') throw new Error('macOSで実行してくだ�
 const root = fileURLToPath(new URL('../',import.meta.url));
 const require = createRequire(import.meta.url);
 const { version:electronVersion } = require('electron/package.json');
-const icon = path.join(root,'assets/Kata.icns');
+const icon = path.join(root,'assets/HaskellNote.icns');
 const temporary = mkdtempSync(path.join(tmpdir(),'kata-icon-'));
 try {
-  const iconset = path.join(temporary,'Kata.iconset');
+  const iconset = path.join(temporary,'HaskellNote.iconset');
   mkdirSync(iconset);
   for (const size of [16,32,128,256,512]) {
     for (const scale of [1,2]) {
       const pixels = String(size*scale);
       const filename = `icon_${size}x${size}${scale === 2 ? '@2x' : ''}.png`;
-      execFileSync('/usr/bin/sips',['-z',pixels,pixels,path.join(root,'assets/Kata.png'),'--out',path.join(iconset,filename)],{ stdio:'pipe' });
+      execFileSync('/usr/bin/sips',['-z',pixels,pixels,path.join(root,'assets/HaskellNote.png'),'--out',path.join(iconset,filename)],{ stdio:'pipe' });
     }
   }
   execFileSync('/usr/bin/iconutil',['-c','icns',iconset,'-o',icon],{ stdio:'pipe' });
@@ -30,9 +30,9 @@ try {
 const included = new Set(['dist','electron','node_modules','package.json']);
 const outputs = await packager({
   dir:root,
-  name:'Kata',
+  name:'HaskellNote',
   icon,
-  executableName:'Kata',
+  executableName:'HaskellNote',
   appBundleId:'com.yenshan.kata-haskell',
   appCategoryType:'public.app-category.developer-tools',
   platform:'darwin',
@@ -49,7 +49,7 @@ const outputs = await packager({
   }
 });
 for (const output of outputs) {
-  console.log(`\n生成しました: ${path.join(output,'Kata.app')}`);
+  console.log(`\n生成しました: ${path.join(output,'HaskellNote.app')}`);
 }
-console.log('Kata.appをアプリケーションフォルダーへコピーすると、FinderやDockから起動できます。');
+console.log('HaskellNote.appをアプリケーションフォルダーへコピーすると、FinderやDockから起動できます。');
 console.log('GHCiとCodex CLIはMacにインストール済みのものを使用します。');

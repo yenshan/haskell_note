@@ -45,7 +45,7 @@ class Codex {
     proc.on('error', e => stopped(`Codexを起動できません: ${e.message}`));
     proc.on('exit', () => stopped(`Codexとの接続が終了しました${diagnostics.trim() ? `: ${diagnostics.trim()}` : ''}`));
     try {
-      await this.rpc('initialize', { clientInfo:{ name:'kata_haskell', title:'Kata Haskell', version:'0.1.0' } });
+      await this.rpc('initialize', { clientInfo:{ name:'haskellnote', title:'HaskellNote', version:'0.1.0' } });
       this.send({ method:'initialized', params:{} });
       const account = await this.rpc('account/read', { refreshToken:false });
       let models = [], defaults = {};

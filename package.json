@@ -1,6 +1,6 @@
 {
-  "name": "kata-haskell",
-  "productName": "Kata",
+  "name": "haskellnote",
+  "productName": "HaskellNote",
   "version": "0.1.0",
   "private": true,
   "description": "A quiet workspace for Haskell practice",

@@ -9,7 +9,7 @@ type Palette = {
 type EditorTheme = { id:string; name:string; description:string; palette:Palette };
 // Adapted from the upstream light palettes. Only the editor and its preview are themed.
 export const editorThemes:EditorTheme[] = [
-  { id:'classic',name:'Kata Light（標準）',description:'白とセージグリーンを基調にした、これまでの配色。',palette:{
+  { id:'classic',name:'HaskellNote Light（標準）',description:'白とセージグリーンを基調にした、これまでの配色。',palette:{
     background:'#ffffff',text:'#293329',gutter:'#ffffff',muted:'#667165',active:'#f5f8f1',selection:'#dbe9cf',accent:'#4b6e36',border:'#dfe5dc',
     keyword:'#7750a3',comment:'#60705a',string:'#3c6c36',number:'#9a5b1d',type:'#88621b',builtin:'#293329',operator:'#365f9a',error:'#a04432'
   } },

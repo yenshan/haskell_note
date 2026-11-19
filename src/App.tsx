@@ -16,7 +16,7 @@ import type { GhciLoadState } from './useGhci';
 
 const api = window.kata;
 const fileDate = (value:string) => new Date(value).toLocaleDateString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit' });
-function Logo({ small = false }:{ small?:boolean }) { return <span className={`haskell-logo ${small?'small':''}`}>λ<span>=</span></span>; }
+function Logo({ small = false }:{ small?:boolean }) { return <span className={`haskell-logo ${small?'small':''}`} role="img" aria-label="HaskellNote"><svg viewBox="220 240 560 540" aria-hidden="true"><path fill="currentColor" d="M280 280H388L650 744H538L466 616L390 744H264L410 516Z M478 440H744V488H505Z M541 552H744V600H568Z M604 664H744V712H631Z"/></svg></span>; }
 
 type SidebarWidths = { left:number; right:number };
 const noInlineDiagnostics:GhciReport['diagnostics'] = [];
@@ -165,7 +165,7 @@ export function App() {
     document.body.classList.add('resizing'); document.addEventListener('pointermove',move); document.addEventListener('pointerup',end);
   }
   const filtered = items.filter(x => x.fileName.toLowerCase().includes(query.toLowerCase()));
-  if (!api) return <div className="browser-notice"><Logo/><h1>Kata</h1><p>このアプリはElectronで起動してください。</p><code>npm run dev</code></div>;
+  if (!api) return <div className="browser-notice"><Logo/><h1>HaskellNote</h1><p>このアプリはElectronで起動してください。</p><code>npm run dev</code></div>;
   return <div className="app">
     <div className="layout" ref={layoutRef}>
       <aside className={`sidebar ${left ? '' : 'collapsed'}`} id="file-sidebar" aria-label="ファイルサイドバー" style={{ width:leftWidth }}>

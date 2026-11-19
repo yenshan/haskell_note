@@ -1,4 +1,4 @@
-# Kata — Haskell workspace
+# HaskellNote — Haskell workspace
 
 ## 機能の概要
 
@@ -31,6 +31,6 @@ macOS上で実行します。必要な依存パッケージのインストール
 ./build-mac.sh
 ```
 
-生成先は `release/Kata-darwin-arm64/Kata.app`（Apple Silicon）または `release/Kata-darwin-x64/Kata.app`（Intel）です。`Kata.app` をアプリケーションフォルダーへコピーして起動できます。GHC/GHCi・Codex CLIは別途インストールが必要です。
+生成先は `release/HaskellNote-darwin-arm64/HaskellNote.app`（Apple Silicon）または `release/HaskellNote-darwin-x64/HaskellNote.app`（Intel）です。`HaskellNote.app` をアプリケーションフォルダーへコピーして起動できます。GHC/GHCi・Codex CLIは別途インストールが必要です。
 
 アイコン・設定の保存先・署名などの詳細は[Macアプリのビルド詳細](docs/mac-build.md)を参照してください。
