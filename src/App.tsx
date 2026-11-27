@@ -20,6 +20,10 @@ const fileDate = (value:string) => new Date(value).toLocaleDateString('ja-JP', {
 function Logo({ small = false }:{ small?:boolean }) { return <span className={`haskell-logo ${small?'small':''}`} role="img" aria-label="HaskellNote"><svg viewBox="220 240 560 540" aria-hidden="true"><path fill="currentColor" d="M280 280H388L650 744H538L466 616L390 744H264L410 516Z M478 440H744V488H505Z M541 552H744V600H568Z M604 664H744V712H631Z"/></svg></span>; }
 
 type SidebarWidths = { left:number; right:number };
+const settingsTabs = [
+  { id:'font',label:'フォント・配色設定' },
+  { id:'ai',label:'AI設定' }
+] as const;
 const noInlineDiagnostics:GhciReport['diagnostics'] = [];
 function initialSidebarWidths():SidebarWidths {
   const fallback = { left:window.innerWidth >= 1500 ? 254 : window.innerWidth <= 1200 ? 216 : 244,right:window.innerWidth >= 1500 ? 380 : 330 };
@@ -72,6 +76,7 @@ export function App() {
   const [fontSettings,setFontSettings] = useState(loadFontSettings);
   const [editorTheme,setEditorTheme] = useState(loadEditorTheme);
   const [settingsOpen,setSettingsOpen] = useState(false);
+  const [settingsTab,setSettingsTab] = useState<(typeof settingsTabs)[number]['id']>('font');
   const settingsButton = useRef<HTMLButtonElement>(null);
   const settingsHeading = useRef<HTMLHeadingElement>(null);
   const closeSettings = useCallback(() => {
@@ -168,6 +173,21 @@ export function App() {
   async function chooseFolder() {
     if (await workspace.chooseFolder()) setQuery('');
   }
+  function navigateSettingsTabs(event:React.KeyboardEvent<HTMLDivElement>) {
+    const current = settingsTabs.findIndex(tab => tab.id === settingsTab);
+    const last = settingsTabs.length - 1;
+    let next:number;
+    switch (event.key) {
+      case 'ArrowUp': next = current === 0 ? last : current - 1; break;
+      case 'ArrowDown': next = current === last ? 0 : current + 1; break;
+      case 'Home': next = 0; break;
+      case 'End': next = last; break;
+      default: return;
+    }
+    event.preventDefault();
+    setSettingsTab(settingsTabs[next].id);
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+  }
   function resize(e:React.PointerEvent) {
     e.preventDefault(); const element = split.current; if (!element) return;
     const rect = element.getBoundingClientRect();
@@ -216,10 +236,17 @@ export function App() {
           <h2 id="settings-heading" ref={settingsHeading} tabIndex={-1}><Settings size={13}/>設定</h2>
           <button className="icon-button" aria-label="設定を閉じる" title="設定を閉じる (Esc)" onClick={closeSettings}><X size={15}/></button>
         </div>
-        {settingsOpen && <div className="settings-scroll"><div className="settings-content">
-          <FontSettings settings={fontSettings} theme={editorTheme} onThemeChange={setEditorTheme} onChange={setFontSettings}/>
-          <AISettings assistant={assistant}/>
-        </div></div>}
+        {settingsOpen && <div className="settings-content">
+          <div className="settings-tabs" role="tablist" aria-labelledby="settings-heading" aria-orientation="vertical" onKeyDown={navigateSettingsTabs}>
+            {settingsTabs.map(tab => <button key={tab.id} type="button" role="tab" id={`settings-tab-${tab.id}`} aria-controls={`settings-pane-${tab.id}`} aria-selected={tab.id === settingsTab} tabIndex={tab.id === settingsTab ? 0 : -1} onClick={() => setSettingsTab(tab.id)}>{tab.label}</button>)}
+          </div>
+          <div className="settings-tabpanel" role="tabpanel" id="settings-pane-font" aria-labelledby="settings-tab-font" hidden={settingsTab !== 'font'} tabIndex={0}>
+            {settingsTab === 'font' && <FontSettings settings={fontSettings} theme={editorTheme} onThemeChange={setEditorTheme} onChange={setFontSettings}/>}
+          </div>
+          <div className="settings-tabpanel" role="tabpanel" id="settings-pane-ai" aria-labelledby="settings-tab-ai" hidden={settingsTab !== 'ai'} tabIndex={0}>
+            {settingsTab === 'ai' && <AISettings assistant={assistant}/>}
+          </div>
+        </div>}
       </main>
       {!right && !settingsOpen && <button className="assistant-launcher" title="AIアシスタントを開く" aria-label="AIサイドバーを開く" aria-expanded={false} aria-controls="assistant-panel" onClick={() => { setRight(true); requestAnimationFrame(() => questionInput.current?.focus()); }}><span className="assistant-launcher-label" aria-hidden="true">AI</span>{aiBusy && <Loader2 size={12} className="spin"/>}</button>}
       <div className="assistant-overlay" style={{ width:rightWidth }} hidden={!right || settingsOpen}>

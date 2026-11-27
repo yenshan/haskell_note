@@ -186,9 +186,13 @@ button svg{vertical-align:middle}
 .settings-page{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;background:var(--surface)}
 .main-workspace[hidden],.settings-page[hidden],.ai-sidebar[hidden]{display:none}
 .settings-page>.lower-header{padding-inline:20px}
-.settings-scroll{flex:1;min-height:0;overflow:auto}
-.settings-content{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));align-items:start;gap:20px;max-width:960px;padding:20px}
-.settings-section{min-width:0;padding:16px;border:1px solid var(--border);border-radius:6px}
+.settings-content{display:flex;flex:1;min-height:0}
+.settings-tabs{display:flex;flex:0 0 clamp(132px,22%,192px);flex-direction:column;gap:4px;overflow:auto;padding:12px 10px;background:var(--surface-muted);border-right:1px solid var(--border)}
+.settings-tabs button{padding:9px 10px;border-radius:5px;color:var(--text-muted);text-align:left;line-height:1.5}
+.settings-tabs button:hover{background:var(--surface-hover);color:var(--text)}
+.settings-tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent-hover);font-weight:600}
+.settings-tabpanel{flex:1;min-width:0;overflow:auto;padding:20px}
+.settings-section{max-width:640px;padding:16px;border:1px solid var(--border);border-radius:6px}
 .settings-section h3{margin:0 0 14px;font-size:13px;font-weight:600}
 .settings-fields{display:grid;gap:12px}
 .settings-fields label{display:flex;flex-direction:column;gap:6px;min-width:0;color:var(--text-muted);font-size:11px}
