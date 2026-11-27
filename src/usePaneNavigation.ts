@@ -17,9 +17,9 @@ function focusPane(pane:Pane) {
   const target = pane === 'editor' ? root?.querySelector('.cm-content') :
     pane === 'ghci' ? root?.querySelector('.xterm-helper-textarea') :
     pane === 'assistant' ? root?.querySelector('[aria-label="AIへの質問"]') :
-    root?.querySelector('.problem-item[aria-current="page"]') || root?.querySelector('[aria-label="ファイルを検索"]:not([hidden])') || root?.querySelector('.sidebar-heading button');
+    root?.querySelector('.problem-item[aria-current="page"]') || root?.querySelector('[aria-label="ファイルを検索"]:not([hidden])');
   if (target instanceof HTMLElement && target.getClientRects().length) target.focus({ preventScroll:true });
-  else if (pane === 'sidebar') root?.querySelector<HTMLButtonElement>('.sidebar-heading button')?.focus();
+  else if (pane === 'sidebar') root?.querySelector<HTMLButtonElement>('button[aria-controls="file-sidebar-content"]')?.focus();
 }
 
 export function usePaneNavigation(askError:() => void, ghciSide = false, revealPane?:(pane:Pane) => void) {

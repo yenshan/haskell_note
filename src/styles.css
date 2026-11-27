@@ -27,14 +27,17 @@ button svg{vertical-align:middle}
 .icon-button{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:5px;color:var(--text-muted);flex-shrink:0;padding:0}
 .icon-button:hover{background:var(--surface-hover);color:var(--text)}
 .layout{display:flex;min-height:0;flex:1}
-.sidebar{position:relative;width:244px;flex-shrink:0;background:var(--surface-muted);display:flex;flex-direction:column;padding:35px 14px 0}
+.sidebar{width:244px;flex-shrink:0;background:var(--surface-muted);display:flex;flex-direction:column;padding:6px 14px 0}
 .sidebar-content{display:flex;flex-direction:column;flex:1;min-height:0}
 .sidebar-content[hidden]{display:none}
-.sidebar.collapsed{padding:27px 0 0;border-right:1px solid var(--border)}
-.sidebar.collapsed .sidebar-heading{justify-content:center;padding:0}
-.sidebar-heading{-webkit-app-region:drag;height:25px;flex-shrink:0;padding:0 9px;display:flex;align-items:center;justify-content:space-between;color:var(--text-muted);font-size:10px;letter-spacing:1.6px;font-weight:600}
-.sidebar-heading>.icon-button{position:absolute;top:6px;right:4px}
+.sidebar.collapsed{padding-inline:0;border-right:1px solid var(--border)}
+.sidebar-header{-webkit-app-region:drag;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;min-height:25px}
+.sidebar.collapsed .sidebar-header{justify-content:center}
+.sidebar-brand{display:flex;align-items:center;gap:7px;font-weight:650;white-space:nowrap}
+.sidebar-brand>[aria-hidden]{display:flex}
+.sidebar-heading{margin:16px 9px 6px;color:var(--text-muted);font-size:10px;letter-spacing:1.6px;font-weight:600}
 .new-button{display:flex;align-items:center;gap:9px;background:var(--primary);color:var(--accent-hover);border:1px solid var(--accent-border);border-radius:6px;padding:10px 12px;width:100%;font-weight:550;margin:18px 0 17px;box-shadow:0 2px 5px #34462a0a}
+.sidebar-content>.new-button{margin-top:0}
 .new-button:hover{color:var(--accent-hover);background:var(--primary-hover)}
 .new-button kbd{margin-left:auto;color:var(--text-muted);font-size:10px}
 .search-box{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--border);border-radius:5px;color:var(--text-muted);background:var(--surface)}
