@@ -196,12 +196,19 @@ button svg{vertical-align:middle}
 .settings-section h3{margin:0 0 14px;font-size:13px;font-weight:600}
 .settings-fields{display:grid;gap:12px}
 .settings-fields label{display:flex;flex-direction:column;gap:6px;min-width:0;color:var(--text-muted);font-size:11px}
-.settings-fields select,.font-size-control{width:100%;min-width:0;height:32px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--text);padding:0 8px}
+.settings-fields select,.openai-setting input,.font-size-control{width:100%;min-width:0;height:32px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface);color:var(--text);padding:0 8px}
 .settings-fields select{cursor:pointer;text-overflow:ellipsis}
 .settings-fields select:disabled{opacity:.6;cursor:default}
 .font-settings-controls,.ai-settings-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
 .font-family-field{grid-column:1/-1}
 .ai-connection{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:10px;color:var(--text-muted);font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.ai-provider-field{max-width:280px;margin-bottom:14px}
+.openai-setting{display:flex;align-items:end;gap:8px}
+.openai-setting label{flex:1}
+.openai-setting button{flex-shrink:0}
+.openai-setting input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.openai-connection{margin-top:0}
+.ai-connection-message{min-height:1.6em;line-height:1.6;color:var(--text-muted)}
 .font-size-control{display:flex;align-items:center;gap:5px}
 .font-size-control input{width:100%;min-width:0;border:0;background:transparent}
 .font-size-control>span{color:var(--text-subtle);font-size:10px}

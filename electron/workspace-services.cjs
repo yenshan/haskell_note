@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const { Ghci } = require('./ghci.cjs');
 const { Codex } = require('./codex.cjs');
+const { OpenAI } = require('./openai.cjs');
 const { GhciDiagnostics } = require('./ghci-diagnostics.cjs');
 
 // Own every resource whose lifetime is tied to the selected folder.
@@ -11,6 +12,7 @@ class WorkspaceServices {
     this.emit = event => { if (this.active) emit(event); };
     this.ghci = new (options.Ghci || Ghci)(this.emit, options.ghciExecutable || 'ghci');
     this.codex = new (options.Codex || Codex)(store, this.emit, options.codexExecutable || 'codex');
+    this.openai = new OpenAI(store,this.emit,options.credentials);
     this.diagnostics = new (options.GhciDiagnostics || GhciDiagnostics)(store, this.ghci);
     try {
       this.watcher = (options.watch || fs.watch)(store.root, (_, name) => {
@@ -21,6 +23,11 @@ class WorkspaceServices {
       this.watcher.on('error', error => this.emit({ type:'notice', message:`フォルダーの監視に失敗しました: ${error.message}` }));
     } catch (error) { this.emit({ type:'notice', message:error.message }); }
   }
+  aiProvider(provider = 'codex') {
+    if (provider === 'codex') return this.codex;
+    if (provider === 'openai') return this.openai;
+    throw new Error('AI接続先が不正です。');
+  }
   close() {
     if (this.closing) return this.closing;
     // Disable events synchronously, before any process can report its exit.
@@ -28,6 +35,7 @@ class WorkspaceServices {
     this.watcher?.close();
     clearTimeout(this.watchTimer);
     this.diagnostics.close();
+    this.openai.close();
     this.closing = Promise.all([this.store.writes, this.ghci.close(), this.closeCodex()]).then(() => {});
     return this.closing;
   }

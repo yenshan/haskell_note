@@ -6,6 +6,9 @@ const path = require('node:path');
 const { Store } = require('../electron/store.cjs');
 const { Ghci, diagnosticText } = require('../electron/ghci.cjs');
 const { Codex } = require('../electron/codex.cjs');
+const { OpenAI } = require('../electron/openai.cjs');
+const { openAICredentials } = require('../electron/openai-credentials.cjs');
+const { normalizeOpenAIBaseURL } = require('../electron/openai-url.cjs');
 const { diagnosticRange } = require('../electron/diagnostic-range.cjs');
 const { GhciDiagnostics,parseDiagnostics } = require('../electron/ghci-diagnostics.cjs');
 const { Workspace, migrateLegacy } = require('../electron/workspace.cjs');
@@ -468,4 +471,121 @@ test('retired services cannot spawn processes from delayed load or connection re
   codex.close();
   await assert.rejects(codex.connect(),/終了しています/);
   assert.equal(codex.proc,undefined);
+});
+
+test('OpenAI streams chat, cancels pending requests, and validates structured GHCi explanations', async t => {
+  const store = new Store(await temporary(t));
+  await store.init();
+  const item = await store.create('Solution.hs','module Solution where');
+  const events = [], requests = [];
+  const diagnostic = { index:0,displayLine:1,startColumn:1,endColumn:6,targetText:'module',explanation:'型を確認してください。' };
+  const output = text => [{ type:'message',content:[{ type:'output_text',text }] }];
+  const customURL = 'http://127.0.0.1:8080/api/v1';
+  const credentials = { get:async url => url === customURL ? '' : 'key-for-test' };
+  const client = new OpenAI(store,event => events.push(structuredClone(event)),credentials,async (url,options) => {
+    const body = options.body && JSON.parse(options.body);
+    requests.push({ url,method:options.method,body });
+    assert.equal(options.headers.Authorization,url.startsWith(customURL) ? undefined : 'Bearer key-for-test');
+    assert.equal(options.redirect,'error');
+    if (url === customURL+'/models') return Response.json({ data:[{ id:'vendor/large-model' },{ id:'gpt-5-mini' },{ id:'gpt-5-mini' },{ id:'invalid model' },null] });
+    if (url === 'https://invalid.example.test/v1/models') return new Response('not JSON');
+    if (!body) return new Response('{}');
+    if (body.text) {
+      assert.equal(body.text.format.strict,true);
+      return Response.json({ status:'completed',output:output(JSON.stringify({ diagnostics:[ diagnostic,{ ...diagnostic,index:8 }] })) });
+    }
+    if (body.input.at(-1).content.includes('Stop now')) {
+      return new Promise((_,reject) => options.signal.addEventListener('abort',() => reject(options.signal.reason),{ once:true }));
+    }
+    if (body.input.at(-1).content.includes('Bad key')) return new Response('server error includes key-for-test',{ status:401 });
+    const data = Buffer.from([
+      { type:'response.output_text.delta',delta:'回答' },
+      { type:'response.output_text.delta',delta:'です' },
+      { type:'response.completed',response:{ output:output('回答です') } }
+    ].map(event => 'data: '+JSON.stringify(event)+'\r\n\r\n').join(''));
+    return new Response(new ReadableStream({
+      start(controller) {
+        for (let i=0;i<data.length;i+=5) controller.enqueue(data.subarray(i,i+5));
+        controller.close();
+      }
+    }));
+  });
+  t.after(() => client.close());
+  await client.check('gpt-5-mini');
+  assert.deepEqual(requests[0],{ url:'https://api.openai.com/v1/models/gpt-5-mini',method:'GET',body:undefined });
+  await client.ask(item.id,'質問です','GHCiの出力','gpt-5-mini','','module Solution where\n-- unsaved');
+  assert.match(requests[1].body.input.at(-1).content,/-- unsaved/);
+  assert.match(requests[1].body.input.at(-1).content,/GHCiの出力/);
+  assert.equal(requests[1].body.store,false);
+  assert.equal(requests[1].body.stream,true);
+  assert.ok(events.some(event => event.type === 'ai-message' && event.message.pending && event.message.text === '回答'));
+  assert.equal(item.messages.at(-1).text,'回答です');
+  assert.equal(item.messages.at(-1).provider,'openai');
+  const pending = client.ask(item.id,'Stop now','','gpt-5-mini','');
+  await waitFor(() => requests.length === 3);
+  assert.deepEqual(requests[2].body.input.slice(0,2),[{ role:'user',content:'質問です' },{ role:'assistant',content:'回答です' }]);
+  assert.equal(client.interrupt(item.id),true);
+  await pending;
+  assert.equal(item.messages.at(-1).pending,false);
+  assert.match(item.messages.at(-1).text,/停止/);
+  await assert.rejects(client.ask(item.id,'Bad key','','gpt-5-mini',''),error => /認証/.test(error.message) && !error.message.includes('key-for-test'));
+  const before = item.messages.length;
+  const report = { source:'module Solution where',diagnostics:[{ line:1,column:1,severity:'error',message:'type mismatch' }] };
+  const explanations = await client.explainDiagnostics(report,'gpt-5-mini','',customURL+'/');
+  assert.equal(item.messages.length,before);
+  assert.equal(requests.at(-1).body.store,false);
+  assert.deepEqual(explanations.get(0),{ displayLine:1,startColumn:1,endColumn:6,targetText:'module',explanation:diagnostic.explanation });
+  assert.equal(explanations.size,1);
+  assert.equal(requests.at(-1).url,customURL+'/responses');
+  await client.check('gpt-5-mini',customURL);
+  assert.equal(requests.at(-1).url,customURL+'/models/gpt-5-mini');
+  await client.ask(item.id,'別の接続先','','gpt-5-mini','',undefined,customURL);
+  assert.equal(requests.at(-1).url,customURL+'/responses');
+  assert.deepEqual(await client.listModels(customURL+'/'),['gpt-5-mini','vendor/large-model']);
+  assert.deepEqual(requests.at(-1),{ url:customURL+'/models',method:'GET',body:undefined });
+  await client.check('vendor/large-model',customURL);
+  assert.equal(requests.at(-1).url,customURL+'/models/vendor%2Flarge-model');
+  await assert.rejects(client.listModels('https://invalid.example.test/v1'),/モデル一覧の応答形式/);
+});
+
+test('OpenAI credentials use the OS encryption adapter and disclose only key status', async t => {
+  const root = await temporary(t);
+  const plain = 'sk-test-openai-only';
+  const encrypted = Buffer.from('opaque mock credential');
+  const safeStorage = {
+    isEncryptionAvailable:() => true,getSelectedStorageBackend:() => 'gnome_libsecret',
+    isAsyncEncryptionAvailable:async () => true,
+    encryptString:key => { assert.equal(key,plain); return encrypted; },
+    encryptStringAsync:async key => safeStorage.encryptString(key),
+    decryptString:buffer => { assert.deepEqual(buffer,encrypted); return plain; },
+    decryptStringAsync:async buffer => ({ result:safeStorage.decryptString(buffer) })
+  };
+  const credentials = openAICredentials(root,safeStorage,'environment-test-key');
+  assert.equal(await credentials.status(),'environment');
+  assert.equal(await credentials.save(' '+plain+' '),'saved');
+  assert.deepEqual(await fs.readFile(path.join(root,'openai-key.enc')),encrypted);
+  const reopened = openAICredentials(root,safeStorage,'environment-test-key');
+  assert.equal(await reopened.status(),'saved');
+  assert.equal(await reopened.get(),plain);
+  const customURL = 'https://example.test/compatible/v1';
+  assert.equal(await reopened.status(customURL),'missing');
+  assert.equal(await reopened.get(customURL),'');
+  await reopened.save(plain,customURL+'/');
+  assert.equal(await reopened.status(customURL),'saved');
+  assert.equal(await reopened.get(customURL),plain);
+  assert.equal(await reopened.clear(customURL),'missing');
+  assert.equal(await reopened.get(),plain);
+  assert.equal(await reopened.clear(),'environment');
+  assert.equal(await reopened.get(),'environment-test-key');
+  const unavailable = openAICredentials(root,{ ...safeStorage,getSelectedStorageBackend:() => 'basic_text',isAsyncEncryptionAvailable:async () => false });
+  await assert.rejects(unavailable.save(plain),/安全な保存先/);
+  assert.equal(await unavailable.status(),'missing');
+});
+
+test('OpenAI URLs preserve the API prefix and allow HTTP only for loopback hosts', () => {
+  assert.equal(normalizeOpenAIBaseURL(' https://EXAMPLE.test:443/openai/v1/// '),'https://example.test/openai/v1');
+  assert.equal(normalizeOpenAIBaseURL('http://[::1]:8080/v1/'),'http://[::1]:8080/v1');
+  for (const invalid of ['http://example.test/v1','http://localhost.example.test/v1','file:///tmp','https://user:pass@example.test/v1','https://example.test/v1?key=secret','https://example.test/v1#models']) {
+    assert.throws(() => normalizeOpenAIBaseURL(invalid),/ベースURL/);
+  }
 });

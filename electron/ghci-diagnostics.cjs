@@ -37,11 +37,11 @@ class GhciDiagnostics {
     if (this.sources.has(id) && this.sources.get(id) !== snapshot.code) throw new Error('コードが変更されています。GHCiで再読み込みしてください。');
     return this.report(id,snapshot.code,diagnostic.output);
   }
-  async explain(id,token,codex,model,effort) {
+  async explain(id,token,provider,model,effort,baseURL) {
     const report = this.reports.get(id);
     if (!report || report.token !== token || (await this.store.open(id)).code !== report.source) throw new Error('コードが更新されています。GHCiで再読み込みしてください。');
     if (report.success || !report.diagnostics.some(d => d.severity === 'error')) return report;
-    const explanations = await codex.explainDiagnostics(report,model,effort);
+    const explanations = await provider.explainDiagnostics(report,model,effort,baseURL);
     return { ...report,diagnostics:report.diagnostics.map((d,index) => ({ ...d,...(explanations.get(index) ? explanations.get(index) : {}) })) };
   }
   close() { this.reports.clear(); this.sources.clear(); }

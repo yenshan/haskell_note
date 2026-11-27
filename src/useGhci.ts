@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import type { Diagnostic, GhciReport } from './types';
+import type { AIProvider, Diagnostic, GhciReport } from './types';
 import type { TerminalHandle } from './GhciTerminal';
 import type { WorkspaceState } from './useWorkspace';
 const api = window.kata;
 export type GhciLoadState = { source:string; phase:'loading'|'analyzing'|'done'|'error'; report?:GhciReport; note?:string };
 
-export function useGhci(workspace:WorkspaceState, terminalRef:RefObject<TerminalHandle|null>, model:string, effort:string) {
+export function useGhci(workspace:WorkspaceState, terminalRef:RefObject<TerminalHandle|null>, model:string, effort:string, provider:AIProvider, baseURL?:string) {
   const { items,documentRef,folderEpoch,workspaceVersion,save } = workspace;
   const [diagnostics,setDiagnostics] = useState<Record<string,Diagnostic>>({}); const [busy,setBusy] = useState<Record<string,boolean>>({});
   const [loads,setLoads] = useState<Record<string,GhciLoadState>>({});
@@ -52,7 +52,7 @@ export function useGhci(workspace:WorkspaceState, terminalRef:RefObject<Terminal
       if (report.success) setDiagnostics(prev => { const next = { ...prev }; delete next[p.id]; return next; });
       update({ source:report.source,phase:errors ? 'analyzing' : 'done',report });
       if (errors) {
-        report = await api.ghciExplain(p.id,report.token,model,effort);
+        report = await api.ghciExplain(p.id,report.token,model,effort,provider,baseURL);
         update({ source:report.source,phase:'done',report });
       }
     } catch (error) {
@@ -61,7 +61,7 @@ export function useGhci(workspace:WorkspaceState, terminalRef:RefObject<Terminal
       pending.delete(p.id);
       if (epoch === folderEpoch.current) setBusy(prev => ({ ...prev,[p.id]:false }));
     }
-  },[save,model,effort,items]);
+  },[save,model,effort,provider,baseURL,items]);
   analyzeDiagnosticRef.current = target => { void run(false,target); };
   useEffect(() => {
     setDiagnostics({}); setBusy({}); setLoads({}); setDead({}); setGeneration({});

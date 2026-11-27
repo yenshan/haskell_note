@@ -1,4 +1,6 @@
-export type Message = { id:string; role:'user'|'assistant'; text:string; at:string; pending?:boolean };
+export type AIProvider = 'codex'|'openai';
+export type OpenAIKeyStatus = 'missing'|'saved'|'environment';
+export type Message = { id:string; role:'user'|'assistant'; text:string; at:string; pending?:boolean; provider?:AIProvider };
 export type Problem = { id:string; title:string; fileName:string; createdAt:string; updatedAt:string; threadId:string|null; messages:Message[]; code:string };
 export type Summary = Omit<Problem, 'code'|'messages'> & { messageCount:number };
 export type WorkspaceInfo = { path:string; name:string; warning:string|null };
@@ -16,10 +18,14 @@ export interface Bridge {
   ghciWrite(id:string, data:string):Promise<void>; ghciResize(id:string, cols:number, rows:number):Promise<void>;
   ghciStop(id:string):Promise<void>;
   codexConnect():Promise<CodexStatus>; codexStatus():Promise<CodexStatus>;
-  ask(id:string, text:string, context:string, model:string, effort?:string, source?:string):Promise<unknown>; stopAI(id:string):Promise<void>;
+  normalizeOpenAIBaseURL(baseURL:string):Promise<string>;
+  openAIKeyStatus(baseURL:string):Promise<OpenAIKeyStatus>; saveOpenAIKey(key:string,baseURL:string):Promise<OpenAIKeyStatus>; clearOpenAIKey(baseURL:string):Promise<OpenAIKeyStatus>;
+  checkOpenAI(model:string,baseURL:string):Promise<void>;
+  listOpenAIModels(baseURL:string):Promise<string[]>;
+  ask(id:string, text:string, context:string, model:string, effort?:string, source?:string, provider?:AIProvider, baseURL?:string):Promise<unknown>; stopAI(id:string):Promise<void>;
   ghciSnapshot(id:string):Promise<TerminalSnapshot|null>;
   ghciLoad(id:string, cols?:number, rows?:number):Promise<GhciReport>;
-  ghciDiagnosticReport(id:string):Promise<GhciReport>; ghciExplain(id:string, token:string, model:string, effort:string):Promise<GhciReport>;
+  ghciDiagnosticReport(id:string):Promise<GhciReport>; ghciExplain(id:string, token:string, model:string, effort:string, provider?:AIProvider, baseURL?:string):Promise<GhciReport>;
   reveal(id:string):Promise<void>; closeReady():Promise<void>; onEvent(callback:(e:AppEvent)=>void):()=>void;
   copyText(text:string):Promise<void>;
 }

@@ -44,8 +44,8 @@ export function App() {
   const workspace = useWorkspace(notify);
   const { items,problem,code,dirty,saving,folder,choosingFolder,loading,open,changeCode } = workspace;
   const assistant = useAssistant(workspace,notify);
-  const { model,effort,aiBusy } = assistant;
-  const { diagnostics,busy,loads,dead,generation,run,clearLoadMessages,setAlive } = useGhci(workspace,terminalRef,model,effort);
+  const { provider,requestModel,requestEffort,requestBaseURL,aiBusy } = assistant;
+  const { diagnostics,busy,loads,dead,generation,run,clearLoadMessages,setAlive } = useGhci(workspace,terminalRef,requestModel,requestEffort,provider,requestBaseURL);
   const save = useCallback(async () => {
     const target = workspace.documentRef.current.problem?.id;
     const epoch = workspace.folderEpoch.current;

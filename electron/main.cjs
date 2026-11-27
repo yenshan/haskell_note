@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, nativeTheme, dialog, screen, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, nativeTheme, dialog, screen, clipboard, safeStorage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
 const { Workspace } = require('./workspace.cjs');
 const { WorkspaceServices } = require('./workspace-services.cjs');
+const { openAICredentials } = require('./openai-credentials.cjs');
+const { normalizeOpenAIBaseURL } = require('./openai-url.cjs');
 const { restoreWindowState, trackWindowState } = require('./window-state.cjs');
 const root = path.resolve(__dirname, '..');
 app.setName('HaskellNote');
@@ -26,10 +28,12 @@ app.whenReady().then(async () => {
   nativeTheme.themeSource = 'light';
   workspace = new Workspace(process.env.KATA_WORKSPACE || (app.isPackaged ? path.join(app.getPath('userData'),'workspace') : path.join(root,'workspace')), app.getPath('userData'), process.env.KATA_WORKSPACE);
   await workspace.init(); store = workspace.store;
+  const credentials = openAICredentials(app.getPath('userData'),safeStorage,process.env.OPENAI_API_KEY);
   function startServices() {
     services = new WorkspaceServices(store,emit,{
       ghciExecutable:process.env.KATA_GHCI || 'ghci',
-      codexExecutable:process.env.KATA_CODEX || 'codex'
+      codexExecutable:process.env.KATA_CODEX || 'codex',
+      credentials
     });
   }
   startServices();
@@ -75,12 +79,18 @@ app.whenReady().then(async () => {
     'ghci:stop': (_, id) => { store.find(id); return services.ghci.stop(id); },
     'codex:connect': () => services.codex.connect(),
     'codex:status': () => services.codex.status,
-    'codex:ask': (_, id, text, context, model, effort, source) => services.codex.ask(id, text, context, model, effort, source),
-    'codex:interrupt': (_, id) => services.codex.interrupt(id),
+    'openai:normalize-base-url': (_, baseURL) => normalizeOpenAIBaseURL(baseURL),
+    'openai:key-status': (_, baseURL) => credentials.status(baseURL),
+    'openai:save-key': (_, key, baseURL) => credentials.save(key,baseURL),
+    'openai:clear-key': (_, baseURL) => credentials.clear(baseURL),
+    'openai:check': (_, model, baseURL) => services.openai.check(model,baseURL),
+    'openai:models': (_, baseURL) => services.openai.listModels(baseURL),
+    'ai:ask': (_, id, text, context, model, effort, source, provider, baseURL) => services.aiProvider(provider).ask(id,text,context,model,effort,source,baseURL),
+    'ai:interrupt': (_, id) => { if (!services.openai.interrupt(id)) return services.codex.interrupt(id); },
     'ghci:snapshot': (_, id) => { store.find(id); return services.ghci.peek(id); },
     'ghci:load': (_, id, cols=80, rows=24) => { dimensions(cols,rows); return services.diagnostics.load(id,cols,rows); },
     'ghci:diagnostic-report': (_, id) => services.diagnostics.latest(id),
-    'ghci:explain': (_, id, token, model, effort) => services.diagnostics.explain(id,token,services.codex,model,effort),
+    'ghci:explain': (_, id, token, model, effort, provider, baseURL) => services.diagnostics.explain(id,token,services.aiProvider(provider),model,effort,baseURL),
     'app:close-ready': () => closeWindow()
   };
   function dimensions(cols,rows) { if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols<2 || cols>1000 || rows<1 || rows>500) throw new Error('端末サイズが不正です'); }
