@@ -4,14 +4,14 @@ import type { WorkspaceState } from './useWorkspace';
 const api = window.kata;
 type CodexSelection = { model:string; effort:string };
 export const defaultOpenAIBaseURL = 'https://api.openai.com/v1';
-const defaultAISettings = { model:'',effort:'',provider:'codex' as AIProvider,openAIModel:'gpt-5-mini',openAIBaseURL:defaultOpenAIBaseURL };
+const defaultAISettings = { model:'',effort:'',provider:'openai' as AIProvider,openAIModel:'gpt-5-mini',openAIBaseURL:defaultOpenAIBaseURL };
 function initialAISettings():typeof defaultAISettings {
   try {
     const saved = JSON.parse(localStorage.getItem('kata-ai-settings') || 'null');
     return {
       model:typeof saved?.model === 'string' ? saved.model : '',
       effort:typeof saved?.effort === 'string' ? saved.effort : '',
-      provider:saved?.provider === 'openai' ? 'openai' : 'codex',
+      provider:saved?.provider === 'codex' ? 'codex' : defaultAISettings.provider,
       openAIModel:typeof saved?.openAIModel === 'string' && saved.openAIModel ? saved.openAIModel : defaultAISettings.openAIModel,
       openAIBaseURL:typeof saved?.openAIBaseURL === 'string' && saved.openAIBaseURL ? saved.openAIBaseURL : defaultOpenAIBaseURL
     };

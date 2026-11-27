@@ -9,8 +9,8 @@ export function AISettings({ assistant }:{ assistant:ReturnType<typeof useAssist
     <h3 id="ai-settings-title">AI設定</h3>
     <div className="settings-fields ai-provider-field">
       <label>AI接続先<select value={provider} onChange={e => setProvider(e.target.value === 'openai' ? 'openai' : 'codex')}>
-        <option value="codex">Codex</option>
         <option value="openai">OpenAI API</option>
+        <option value="codex">Codex</option>
       </select></label>
     </div>
     {provider === 'openai' ? <OpenAISettings model={openAIModel} onModelChange={setOpenAIModel} baseURL={openAIBaseURL} onBaseURLChange={setOpenAIBaseURL}/> : <CodexSettings assistant={assistant}/>}

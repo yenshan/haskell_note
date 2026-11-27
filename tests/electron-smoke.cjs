@@ -71,8 +71,22 @@ app.on('browser-window-created', (_,win) => {
       await until(`document.querySelector('.xterm') && document.querySelector('.cm-content')`);
       assert.match(await evaluate('document.body.innerText'),/Multiples of 3 or 5/);
       assert.equal(await evaluate(`window.kata.list().then(list => window.kata.ghciSnapshot(list[0].id))`),null,'opening the initial file does not launch GHCi');
+      await evaluate(`document.querySelector('.sidebar-settings').click()`);
+      await until(`document.querySelector('#settings-tab-ai')`);
+      await evaluate(`document.querySelector('#settings-tab-ai').click()`);
+      await until(`document.querySelector('.ai-provider-field select')`);
+      assert.deepEqual(await evaluate(`Array.from(document.querySelector('.ai-provider-field select').options, option => option.value)`),['openai','codex']);
+      assert.equal(await evaluate(`document.querySelector('.ai-provider-field select').value`),'openai');
+      await evaluate(`(() => {
+        const provider = document.querySelector('.ai-provider-field select');
+        provider.value = 'codex';
+        provider.dispatchEvent(new Event('change',{ bubbles:true }));
+      })()`);
+      await until(`JSON.parse(localStorage.getItem('kata-ai-settings')).provider === 'codex'`);
+      await evaluate(`document.querySelector('[aria-label="設定を閉じる"]').click()`);
       await evaluate(`document.querySelector('[aria-label="AIサイドバーを閉じる"]').click()`);
       // Real Vim keys must update the OS clipboard without changing the source.
+      await evaluate(`document.querySelector('.vim-toggle:not(.on)')?.click()`);
       await evaluate(`document.querySelector('.cm-content').focus()`);
       const beforeYank = await evaluate(`document.querySelector('.cm-content').textContent`);
       key('G'); key('G'); key('Y'); key('Y');
