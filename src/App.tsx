@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, Search, ChevronDown, Check, Circle, Command, FolderOpen, Loader2, PanelLeftClose, PanelLeftOpen, Play, RotateCcw, Save, Sparkles, Terminal, X, CheckCheck, Type, PanelBottom, PanelRight } from 'lucide-react';
+import { Plus, Search, ChevronDown, Check, Circle, Command, FolderOpen, Loader2, PanelLeftClose, PanelLeftOpen, Play, RotateCcw, Save, Settings, Sparkles, Terminal, X, CheckCheck, PanelBottom, PanelRight } from 'lucide-react';
+import { AISettings } from './AISettings';
 import { AssistantPanel } from './AssistantPanel';
 import { Editor } from './Editor';
 import { GhciTerminal, type TerminalHandle } from './GhciTerminal';
@@ -64,13 +65,19 @@ export function App() {
   const leftWidth = left ? Math.min(preferredWidths.left,leftMax) : 42;
   const workspaceWidth = layoutWidth-leftWidth-(left ? 5 : 0)-42;
   const rightMax = Math.max(280,Math.min(640,workspaceWidth+42));
-  const assistantWidth = Math.min(preferredWidths.right,rightMax);
+  const rightWidth = Math.min(preferredWidths.right,rightMax);
   const ghciMax = Math.max(220,workspaceWidth-225);
   const ghciWidth = Math.min(preferredGhciWidth,ghciMax);
   const [vimEnabled,setVimEnabled] = useState(() => localStorage.getItem('kata-vim') === 'on');
   const [fontSettings,setFontSettings] = useState(loadFontSettings);
   const [editorTheme,setEditorTheme] = useState(loadEditorTheme);
-  const [fontSettingsOpen,setFontSettingsOpen] = useState(false);
+  const [settingsOpen,setSettingsOpen] = useState(false);
+  const settingsButton = useRef<HTMLButtonElement>(null);
+  const settingsHeading = useRef<HTMLHeadingElement>(null);
+  const closeSettings = useCallback(() => {
+    settingsButton.current?.focus();
+    setSettingsOpen(false);
+  },[]);
   const [mode,setMode] = useState('NORMAL'); const [cursor,setCursor] = useState([1,1]);
   const [help,setHelp] = useState(false);
   const questionInput = useRef<HTMLInputElement>(null); const split = useRef<HTMLDivElement>(null);
@@ -113,8 +120,10 @@ export function App() {
   useEffect(() => {
     try { localStorage.setItem('kata-ai-sidebar-open',right ? 'on' : 'off'); } catch {}
   },[right]);
+  useEffect(() => { if (settingsOpen) settingsHeading.current?.focus(); },[settingsOpen]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''),6500); return () => clearTimeout(t); }, [toast]);
   const focusGhci = useCallback(() => {
+    setSettingsOpen(false);
     setRight(false);
     requestAnimationFrame(() => terminalRef.current?.focus());
   },[]);
@@ -130,12 +139,13 @@ export function App() {
   },[run]);
   useEffect(() => {
     const close = (event:KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.isComposing || !right || document.querySelector('dialog[open],.modal-backdrop')) return;
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing || (!right && !settingsOpen) || document.querySelector('dialog[open],.modal-backdrop')) return;
+      if (settingsOpen) { event.preventDefault(); closeSettings(); return; }
       event.preventDefault(); setRight(false);
       if (document.activeElement?.closest('#assistant-panel')) requestAnimationFrame(() => document.querySelector<HTMLElement>('.cm-content')?.focus());
     };
     window.addEventListener('keydown',close); return () => window.removeEventListener('keydown',close);
-  },[right]);
+  },[right,settingsOpen,closeSettings]);
   useEffect(() => {
     const handler = (e:KeyboardEvent) => {
       if (document.querySelector('dialog[open]')) return;
@@ -149,9 +159,10 @@ export function App() {
     window.addEventListener('keydown',handler); return () => window.removeEventListener('keydown',handler);
   }, [save,run,notify,focusGhci]);
   async function create() {
-    if (await workspace.create(newTitle)) { setNewOpen(false); setNewTitle(''); }
+    if (await workspace.create(newTitle)) { setNewOpen(false); setNewTitle(''); setSettingsOpen(false); }
   }
   usePaneNavigation(() => { if (lastError) void run(false,id); },ghciSide,pane => {
+    setSettingsOpen(false);
     setRight(pane === 'assistant');
   });
   async function chooseFolder() {
@@ -178,13 +189,13 @@ export function App() {
         <div className="sidebar-heading">FILES</div>
         <button className="new-button" onClick={() => setNewOpen(true)}><Plus size={16}/><span>新しいファイル</span><kbd>⌘ N</kbd></button>
         <label className="search-box"><Search size={14}/><input aria-label="ファイルを検索" placeholder="ファイルを検索…" value={query} onChange={e => setQuery(e.target.value)}/>{query && <button className="icon-button" aria-label="検索をクリア" onClick={() => setQuery('')}><X size={12}/></button>}</label>
-        <div className="problem-list">{filtered.map(item => <button key={item.id} title={item.fileName} data-problem-id={item.id} aria-current={item.id===id?'page':undefined} onClick={() => void open(item.id)} className={`problem-item ${item.id===id?'selected':''}`}><span className="file-name">{item.fileName}</span><time className="file-date" dateTime={item.updatedAt} title="更新日">{fileDate(item.updatedAt)}</time></button>)}{!filtered.length && <div className="list-empty">ファイルが見つかりません</div>}</div>
+        <div className="problem-list">{filtered.map(item => <button key={item.id} title={item.fileName} data-problem-id={item.id} aria-current={item.id===id?'page':undefined} onClick={() => { setSettingsOpen(false); void open(item.id); }} className={`problem-item ${item.id===id?'selected':''}`}><span className="file-name">{item.fileName}</span><time className="file-date" dateTime={item.updatedAt} title="更新日">{fileDate(item.updatedAt)}</time></button>)}{!filtered.length && <div className="list-empty">ファイルが見つかりません</div>}</div>
         </div>
-        <div className="sidebar-bottom"><button title="エディタ設定（フォント・配色）" aria-label="エディタ設定" className="sidebar-settings" onClick={() => setFontSettingsOpen(true)}><Type size={16}/><span hidden={!left}>フォント・配色設定</span></button></div>
+        <div className="sidebar-bottom"><button ref={settingsButton} title="設定" aria-label="設定" aria-expanded={settingsOpen} aria-controls="settings-panel" className="icon-button sidebar-settings" onClick={() => settingsOpen ? closeSettings() : setSettingsOpen(true)}><Settings size={17}/></button></div>
       </aside>
       {left && <SidebarResizer side="left" controls="file-sidebar" width={leftWidth} min={180} max={leftMax} onResize={width => setPreferredWidths(prev => ({ ...prev,left:width }))}/>}
       <div className="workspace-area">
-      <main className="main-workspace">
+      <main className="main-workspace" hidden={settingsOpen}>
         {problem ? <>
         <div ref={split} className={`split-workspace ${ghciSide ? 'ghci-at-side' : ''}`}>
           <section className="editor-panel"><div className="editor-tabs"><div className="editor-tab"><Logo small/><span>{problem.fileName}</span>{dirty ? <span className="dirty-dot"/> : <span className="tab-saved"><Check size={12}/></span>}</div><div className="editor-tools"><button className="load-button" aria-label="GHCiで読込" title="保存してGHCiで読込・エラーをAI解析 (⌘Enter)" disabled={busy[id]} onClick={() => void run()}>{busy[id] ? <Loader2 size={12} className="spin"/> : <CheckCheck size={12}/>}<span>GHCi読込</span><kbd>⌘ ↵</kbd></button><span className="tool-divider"/><button className={`vim-toggle ${vimEnabled?'on':''}`} onClick={() => { setVimEnabled(!vimEnabled); localStorage.setItem('kata-vim',vimEnabled?'off':'on'); }} title="Vimキーバインドを切り替え">vim <span>{vimEnabled?'ON':'OFF'}</span></button><span className="tool-divider"/><button title={dirty ? '未保存の変更を保存 (⌘S / :w)' : '保存 (⌘S / :w)'} className={`icon-button save-button ${dirty ? 'unsaved' : ''}`} onClick={() => save().catch(notify)}><Save size={14}/></button></div></div>
@@ -200,10 +211,20 @@ export function App() {
           </section>
         </div></> : <div className="workspace-empty"><Logo/><h2>{loading?'ワークスペースを読み込み中…':'.hs ファイルを選択するか、新しく作成してください。'}</h2><button className="new-button" onClick={() => setNewOpen(true)}><Plus size={16}/>新しいファイル</button></div>}
       </main>
-      {!right && <button className="assistant-launcher" title="AIアシスタントを開く" aria-label="AIサイドバーを開く" aria-expanded={false} aria-controls="assistant-panel" onClick={() => { setRight(true); requestAnimationFrame(() => questionInput.current?.focus()); }}><span className="assistant-launcher-label" aria-hidden="true">AI</span>{aiBusy && <Loader2 size={12} className="spin"/>}</button>}
-      <div className="assistant-overlay" style={{ width:assistantWidth }} hidden={!right}>
-        <SidebarResizer side="right" controls="assistant-panel" label="AIアシスタントの幅を調整" className="assistant-resizer" width={assistantWidth} min={280} max={rightMax} onResize={width => setPreferredWidths(prev => ({ ...prev,right:width }))}/>
-        <AssistantPanel assistant={assistant} id={id} open={right} onClose={() => setRight(false)} questionInput={questionInput} onError={notify}/>
+      <main id="settings-panel" className="settings-page" aria-labelledby="settings-heading" hidden={!settingsOpen}>
+        <div className="lower-header">
+          <h2 id="settings-heading" ref={settingsHeading} tabIndex={-1}><Settings size={13}/>設定</h2>
+          <button className="icon-button" aria-label="設定を閉じる" title="設定を閉じる (Esc)" onClick={closeSettings}><X size={15}/></button>
+        </div>
+        {settingsOpen && <div className="settings-scroll"><div className="settings-content">
+          <FontSettings settings={fontSettings} theme={editorTheme} onThemeChange={setEditorTheme} onChange={setFontSettings}/>
+          <AISettings assistant={assistant}/>
+        </div></div>}
+      </main>
+      {!right && !settingsOpen && <button className="assistant-launcher" title="AIアシスタントを開く" aria-label="AIサイドバーを開く" aria-expanded={false} aria-controls="assistant-panel" onClick={() => { setRight(true); requestAnimationFrame(() => questionInput.current?.focus()); }}><span className="assistant-launcher-label" aria-hidden="true">AI</span>{aiBusy && <Loader2 size={12} className="spin"/>}</button>}
+      <div className="assistant-overlay" style={{ width:rightWidth }} hidden={!right || settingsOpen}>
+        <SidebarResizer side="right" controls="assistant-panel" label="AIアシスタントの幅を調整" className="assistant-resizer" width={rightWidth} min={280} max={rightMax} onResize={width => setPreferredWidths(prev => ({ ...prev,right:width }))}/>
+        <AssistantPanel assistant={assistant} id={id} open={right && !settingsOpen} onClose={() => setRight(false)} questionInput={questionInput} onError={notify}/>
       </div>
       </div>
     </div>
@@ -220,7 +241,6 @@ export function App() {
       <button className="icon-button" aria-label="GHCiの通知を閉じる" onClick={() => setDismissedLoadStatus(loadState)}><X size={14}/></button>
     </div>}
     {toast && <div className="toast" role="status"><span>{toast}</span><button className="icon-button" aria-label="通知を閉じる" onClick={() => setToast('')}><X size={14}/></button></div>}
-    {fontSettingsOpen && <FontSettings settings={fontSettings} theme={editorTheme} onThemeChange={setEditorTheme} onChange={setFontSettings} onClose={() => setFontSettingsOpen(false)}/>}
     {newOpen && <div className="modal-backdrop" onMouseDown={e => { if (e.target===e.currentTarget) setNewOpen(false); }}><form className="modal new-modal" onSubmit={e => { e.preventDefault(); void create(); }}><button type="button" className="modal-close icon-button" aria-label="閉じる" onClick={() => setNewOpen(false)}><X size={17}/></button><Logo/><span className="eyebrow">NEW HASKELL FILE</span><h2>新しいファイル</h2><p>選択中のフォルダーに .hs ファイルを作成します。</p><label>ファイル名<input autoFocus placeholder="例：SumOfOddNumbers.hs" value={newTitle} onChange={e => setNewTitle(e.target.value)} maxLength={160}/></label><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setNewOpen(false)}>キャンセル</button><button className="primary-button" type="submit"><Plus size={14}/>ファイルを作成</button></div></form></div>}
     {help && <div className="modal-backdrop" onMouseDown={e => { if (e.target===e.currentTarget) setHelp(false); }}><div className="modal help-modal"><button className="modal-close icon-button" aria-label="ヘルプを閉じる" onClick={() => setHelp(false)}><X size={17}/></button><Command size={23}/><h2>キーボードで、軽やかに。</h2>{[['新しいファイル','⌘ N'],['ファイルを保存','⌘ S / :w'],['GHCiで読込／再読込・エラーをAI解析','⌘ Enter / ⌘ ⇧ Enter'],['領域移動（左 / 下 / 上 / 右）','Ctrl J → h / j / k / l'],['GHCiのエラーを裏でAI解析','Ctrl J → e'],['GHCiにフォーカス','⌘ J / Ctrl Shift J'],['ファイル内の単語で補完','Ctrl Space / Tab / Enter'],['Vim 挿入 / ノーマルモード','i / Esc'],['Vim 検索 / 元に戻す','/ / u'],['GHCi 実行を中断','Ctrl C'],['このヘルプ','⌘ /']].map(([label,key]) => <div className="shortcut" key={label}><span>{label}</span><kbd>{key}</kbd></div>)}<p>Windows / Linux では ⌘ の代わりに Ctrl を使用します。領域移動は全OS共通です。</p></div></div>}
   </div>;
